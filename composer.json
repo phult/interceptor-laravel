@@ -1,0 +1,29 @@
+{
+    "name": "megaads/interceptor",
+    "description": "Interceptor - Route Caching Engine for Laravel",
+    "keywords": ["laravel", "route", "router", "cache", "response"],
+    "homepage": "https://www.megaads.vn",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "megaads-vn",
+            "email": "info@megaads.vn"
+        },
+        {
+            "name": "phuluong",
+            "email": "phult.contact@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Megaads\\Interceptor\\": "src/"
+        },
+        "classmap": [
+            "src"
+        ]
+    }
+}
