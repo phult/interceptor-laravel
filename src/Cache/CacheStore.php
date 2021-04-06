@@ -10,7 +10,8 @@ class CacheStore
     protected $appName;
     public function __construct()
     {
-        $this->redis = Redis::connection('cache');
+        $cacheConnection = \Config::get('interceptor.cacheConnection', '');
+        $this->redis = Redis::connection($cacheConnection);
         $this->appName = \Config::get('interceptor.appName', 'interceptor');
     }
     public function saveResponseData(\Illuminate\Http\Response $response, $requestParserData)
