@@ -1,7 +1,11 @@
-<?php 
+<?php
 namespace Megaads\Interceptor;
 
 use Illuminate\Routing\RoutingServiceProvider;
+use Megaads\Interceptor\Commands\FlushCacheCommand;
+use Megaads\Interceptor\Commands\MonitorCacheCommand;
+use Megaads\Interceptor\Commands\RefreshCacheCommand;
+use Megaads\Interceptor\Commands\RemoveCacheCommand;
 use Megaads\Interceptor\Router;
 
 class InterceptorServiceProvider extends RoutingServiceProvider
@@ -13,7 +17,12 @@ class InterceptorServiceProvider extends RoutingServiceProvider
      * @var bool
      */
     protected $defer = false;
-
+    protected $commands = [
+        FlushCacheCommand::class,
+        RefreshCacheCommand::class,
+        RemoveCacheCommand::class,
+        MonitorCacheCommand::class,
+    ];
     /**
      * Register the service provider.
      *
@@ -21,11 +30,7 @@ class InterceptorServiceProvider extends RoutingServiceProvider
      */
     public function register()
     {
-        $this->app['interceptor:clear'] = $this->app->share(function ($app) {
-        });
-        $this->commands(
-            'interceptor:clear'
-        );
+        $this->commands($this->commands);
     }
 
     /**
@@ -36,12 +41,6 @@ class InterceptorServiceProvider extends RoutingServiceProvider
     public function boot()
     {
         include __DIR__ . '/Routes.php';
-        // $this->app['router'] = $this->app->share(function ($app) {
-            // var_dump($app);die;
-        //     return new \Megaads\Interceptor\Filters($app);
-        // });
-        // $this->app['router']->registerFilterCacheGet();
-        // $this->app['router']->registerFilterCacheSet();
         parent::boot();
     }
 
