@@ -3,7 +3,7 @@ namespace Megaads\Interceptor\Cache;
 
 use Megaads\Interceptor\Utils\UserAgentUtil;
 use \Megaads\Interceptor\Utils\URLUtil;
-
+use Illuminate\Support\Facades\Redis;
 class RequestParser
 {
     public function parse($request)
