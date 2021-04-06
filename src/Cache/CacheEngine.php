@@ -20,7 +20,8 @@ class CacheEngine
     {
         $this->requestParserData = $this->requestParser->parse($request);
         $this->requestParserData['cache-state'] = 'MISS';
-        if ($this->requestParserData['enable']
+        if (array_key_exists('enable', $this->requestParserData) 
+            && $this->requestParserData['enable']
             && $request->header('Referer') !== 'interceptor-worker') {
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
             if ($cacheData != null) {
@@ -37,7 +38,9 @@ class CacheEngine
 
     public function after($route, $request, $response = null)
     {
-        if ($this->requestParserData['enable']
+        if (array_key_exists('enable', $this->requestParserData) 
+            && array_key_exists('cache-state', $this->requestParserData) 
+            && $this->requestParserData['enable']
             && $this->requestParserData['cache-state'] !== 'HIT') {
             //check status code
             $cachedStatuses = \Config::get('interceptor.statuses', []);
