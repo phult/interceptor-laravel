@@ -19,6 +19,7 @@ class AbtractCommand extends Command
     }
     protected function response($data)
     {
+        $data['time'] = date('Y-m-d H:i:s');
         $response = json_encode($data);
         if ($data['status'] == 'successful') {
             $this->info($response);
