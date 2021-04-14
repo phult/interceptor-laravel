@@ -47,6 +47,7 @@ class CacheEngine
             $cachedStatuses = \Config::get('interceptor.statuses', []);
             if (in_array(http_response_code(), $cachedStatuses)) {
                 $this->cacheStore->saveResponseData($response, $this->requestParserData);
+                $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
             }
         }
     }
