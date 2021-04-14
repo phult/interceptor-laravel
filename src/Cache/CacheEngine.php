@@ -25,11 +25,12 @@ class CacheEngine
             && $request->header('Referer') !== 'interceptor-worker') {
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
             if ($cacheData != null) {
+                $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                 $cacheTime = $this->cacheStore->getResponseCacheTime($this->requestParserData);
                 $this->requestParserData['cache-state'] = 'HIT';
                 $response = new Response();
                 $response->header('Served-From', 'interceptor');
-                $response->header('Interceptor-Fefresh-Time', date('d M Y H:i:s', $cacheTime));
+                $response->header('Interceptor-Refresh-Time', date('d M Y H:i:s', $cacheTime));
                 $response->header('Interceptor-URL', $this->requestParserData['url']);
                 return $response->setContent($cacheData);
             }

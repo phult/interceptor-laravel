@@ -3,6 +3,7 @@ namespace Megaads\Interceptor;
 
 use Illuminate\Routing\RoutingServiceProvider;
 use Megaads\Interceptor\Commands\FlushCacheCommand;
+use Megaads\Interceptor\Commands\GarbageCacheCommand;
 use Megaads\Interceptor\Commands\MonitorCacheCommand;
 use Megaads\Interceptor\Commands\RefreshCacheCommand;
 use Megaads\Interceptor\Commands\RemoveCacheCommand;
@@ -22,6 +23,7 @@ class InterceptorServiceProvider extends RoutingServiceProvider
         RefreshCacheCommand::class,
         RemoveCacheCommand::class,
         MonitorCacheCommand::class,
+        GarbageCacheCommand::class,
     ];
     /**
      * Register the service provider.

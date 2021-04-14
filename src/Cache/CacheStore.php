@@ -25,6 +25,24 @@ class CacheStore
         return $time;
     }
 
+    public function saveLastActiveTimeURL($requestParserData)
+    {
+        $time = time();
+        $key = $this->buildCacheKey($requestParserData);
+        $this->redis->zadd('interceptor-last-active-time', $time, $key);
+        return $time;
+    }
+
+    public function listLastActiveTimeURLs($startIdx = 0, $stopIdx = -1)
+    {
+        $retval = [];
+        $cacheKeys = $this->redis->zrevrange('interceptor-last-active-time', $startIdx, $stopIdx);
+        foreach ($cacheKeys as $cacheKey) {
+            $retval[] = $this->parseCacheKey($cacheKey);
+        }
+        return $retval;
+    }
+
     public function getResponseData($requestParserData)
     {
         $key = $this->buildCacheKey($requestParserData);
@@ -48,12 +66,8 @@ class CacheStore
             $createTimeTo, [
                 'limit' => [0, $limit],
             ]);
-        foreach ($expriredCacheData as $deviceUrl) {
-            $explodedDeviceUrl = explode('::', $deviceUrl);
-            $retval[] = [
-                'url' => $explodedDeviceUrl[2],
-                'device' => $explodedDeviceUrl[1],
-            ];
+        foreach ($expriredCacheData as $item) {
+            $retval[] = $this->parseCacheKey($item);
         }
         return $retval;
     }
@@ -66,13 +80,9 @@ class CacheStore
             $createTimeTo, [
                 'limit' => [0, $limit],
             ]);
-        foreach ($expriredCacheData as $deviceUrl) {
-            $explodedDeviceUrl = explode('::', $deviceUrl);
-            $retval[] = [
-                'url' => $explodedDeviceUrl[2],
-                'device' => $explodedDeviceUrl[1],
-            ];
-            $this->redis->zrem('interceptor-cache-time', $deviceUrl);
+        foreach ($expriredCacheData as $item) {
+            $retval[] = $this->parseCacheKey($item);
+            $this->redis->zrem('interceptor-cache-time', $item);
         }
         return $retval;
     }
@@ -96,26 +106,47 @@ class CacheStore
         }
         // flush cache time keys
         $this->redis->del('interceptor-cache-time');
+        // flush last active time keys
+        $this->redis->del('interceptor-last-active-time');
     }
 
-    public function remove($url)
+    public function remove($url, $device = null)
     {
         $retval = false;
         // remove response cache data
-        $cacheKeys = $this->redis->keys($this->appName . '*' . $url);
-        // dd($cacheKeys);
+        $keyPattern = $device != null ? ($this->appName . '::' . $device . '::' . $url) : ($this->appName . '*' . $url);
+        $cacheKeys = $this->redis->keys($keyPattern);
         foreach ($cacheKeys as $cacheKey) {
             $this->redis->del($cacheKey);
         }
-        // remove cache time keys
-        $devices = \Config::get('interceptor.devices', []);
-        foreach ($devices as $device) {
+        // remove cache time keys and last active time keys
+        if ($device != null) {
             $delCount = $this->redis->zrem('interceptor-cache-time', $this->appName . '::' . $device . '::' . $url);
+            $this->redis->zrem('interceptor-last-active-time', $this->appName . '::' . $device . '::' . $url);
             if ($delCount > 0) {
                 $retval = true;
             }
+        } else {
+            $devices = \Config::get('interceptor.devices', []);
+            foreach ($devices as $device) {
+                $delCount = $this->redis->zrem('interceptor-cache-time', $this->appName . '::' . $device . '::' . $url);
+                $this->redis->zrem('interceptor-last-active-time', $this->appName . '::' . $device . '::' . $url);
+                if ($delCount > 0) {
+                    $retval = true;
+                }
+            }
         }
         return $retval;
+    }
+
+    private function parseCacheKey($cacheKey)
+    {
+        $explodedCacheKey = explode('::', $cacheKey);
+        return [
+            'url' => $explodedCacheKey[2],
+            'device' => $explodedCacheKey[1],
+            'appName' => $explodedCacheKey[0],
+        ];
     }
 
     private function buildCacheKey($requestParserData)

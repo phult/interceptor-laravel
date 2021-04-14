@@ -42,6 +42,20 @@ class CacheWorker
         }
     }
 
+    public function clearGarbageCache($maxCacheSize = null)
+    {
+        $retval = 0;
+        if ($maxCacheSize == null) {
+            $maxCacheSize = \Config::get('interceptor.maxCacheSize', 5000);
+        }
+        $garbageCache = $this->cacheStore->listLastActiveTimeURLs($maxCacheSize, -1);
+        $retval = count($garbageCache);
+        foreach ($garbageCache as $item) {
+            $this->cacheStore->remove($item['url'], $item['device']);
+        }
+        return $retval;
+    }
+
     private function request($url, $headers)
     {
         $client = new Client();

@@ -2,6 +2,7 @@
 return [
     "appName" => "interceptor-app",
     "enable" => true,
+    "maxCacheSize" => 5000,
     "refreshRate" => 1800,
     "maxAge" => 86400,
     "cacheConnection" => 'cache',
