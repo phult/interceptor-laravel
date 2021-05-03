@@ -58,10 +58,17 @@ class CacheWorker
 
     private function request($url, $headers)
     {
-        $client = new Client();
-        $res = $client->request('GET', $url, [
-            'headers' => $headers,
-        ]);
-        return $res->getStatusCode();
+        $retval = null;
+        try {
+            $client = new Client();
+            $res = $client->request('GET', $url, [
+                'headers' => $headers,
+                'http_errors' => false,
+            ]);
+            $retval = $res->getStatusCode();
+        } catch (Exception $ex) {
+            $retval = 500;
+        }
+        return $retval;
     }
 }
