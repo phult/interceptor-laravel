@@ -87,6 +87,17 @@ class CacheStore
         return $retval;
     }
 
+    public function isOutOfDateResponse($requestParserData)
+    {
+        $retval = false;
+        $refreshRate = \Config::get('interceptor.refreshRate', 86400);
+        $cacheTime = $this->getResponseCacheTime($requestParserData);
+        if ($cacheTime == null || $cacheTime < (time() - $refreshRate)) {
+            $retval = true;
+        }
+        return $retval;
+    }
+
     public function checkResponseKeys($url)
     {
         return $this->redis->keys($this->appName . '*' . $url);
