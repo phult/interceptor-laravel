@@ -16,7 +16,7 @@ class CacheEngine
         $this->requestParser = new RequestParser();
     }
 
-    public function before($route, $request, $response = null)
+    public function before($request, $response = null)
     {
         $this->requestParserData = $this->requestParser->parse($request);
         $this->requestParserData['cache-state'] = 'MISS';
@@ -38,7 +38,7 @@ class CacheEngine
         }
     }
 
-    public function after($route, $request, $response = null)
+    public function after($request, $response = null)
     {
         if (array_key_exists('enable', $this->requestParserData)
             && array_key_exists('cache-state', $this->requestParserData)

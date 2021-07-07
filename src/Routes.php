@@ -8,9 +8,9 @@ use Megaads\Interceptor\Cache\CacheEngine;
 
 $cacheEngine = new CacheEngine();
 \Route::filter('interceptor-before', function ($route, $request, $response = null) use ($cacheEngine) {
-    return $cacheEngine->before($route, $request, $response);
+    return $cacheEngine->before($request, $response);
 });
 
 \Route::filter('interceptor-after', function ($route, $request, $response = null) use ($cacheEngine) {
-    $cacheEngine->after($route, $request, $response);
+    $cacheEngine->after($request, $response);
 });
