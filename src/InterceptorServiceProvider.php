@@ -42,7 +42,7 @@ class InterceptorServiceProvider extends RoutingServiceProvider
      */
     public function boot()
     {
-        if (method_exists($this->app, 'aliasMiddleware')) {
+        if (method_exists($this->app['router'], 'aliasMiddleware')) {
             $this->app['router']->aliasMiddleware('interceptor', \Megaads\Interceptor\Middlewares\Caching::class);
         } else {
             include __DIR__ . '/Routes.php';
