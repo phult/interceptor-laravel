@@ -47,8 +47,12 @@ class CacheEngine
                 //check status code
                 $cachedStatuses = \Config::get('interceptor.statuses', []);
                 if (in_array(http_response_code(), $cachedStatuses)) {
-                    $this->cacheStore->saveResponseData($response, $this->requestParserData);
-                    $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
+                    try {
+                        $this->cacheStore->saveResponseData($response, $this->requestParserData);
+                        if ($request->header('Referer') !== 'interceptor-worker') {
+                            $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);            
+                        }
+                    } catch (\Throwable $th) {}               
                 }
             } else {
                 $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
