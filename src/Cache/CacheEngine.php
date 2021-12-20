@@ -3,17 +3,20 @@ namespace Megaads\Interceptor\Cache;
 
 use Illuminate\Http\Response;
 use Megaads\Interceptor\Cache\CacheStore;
+use Megaads\Interceptor\Cache\CacheWorker;
 use Megaads\Interceptor\Cache\RequestParser;
 
 class CacheEngine
 {
     protected $cacheStore;
     protected $requestParser;
+    protected $cacheWorker;
     protected $requestParserData = [];
     public function __construct()
     {
         $this->cacheStore = new CacheStore();
         $this->requestParser = new RequestParser();
+        $this->cacheWorker = new CacheWorker();
     }
 
     public function before($request, $response = null)
@@ -22,14 +25,17 @@ class CacheEngine
         $this->requestParserData['cache-state'] = 'MISS';
         if (array_key_exists('enable', $this->requestParserData)
             && $this->requestParserData['enable']
-            && $this->cacheStore->isOutOfDateResponse($this->requestParserData) === false
-            && $request->header('Referer') !== 'interceptor-worker') {
+            && $request->header('Referer') !== 'interceptor-worker') {            
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
             if ($cacheData != null) {
+                $response = new Response();
+                // async refresh cache if it's out-of-date
+                if ($this->cacheStore->isOutOfDateResponse($this->requestParserData) === true) {
+                    $this->cacheWorker->refreshCache($this->requestParserData['url'], [$this->requestParserData['device']], true);
+                }
                 $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                 $cacheTime = $this->cacheStore->getResponseCacheTime($this->requestParserData);
                 $this->requestParserData['cache-state'] = 'HIT';
-                $response = new Response();
                 $response->header('Served-From', 'interceptor');
                 $response->header('Interceptor-Refresh-Time', date('d M Y H:i:s', $cacheTime));
                 $response->header('Interceptor-URL', $this->requestParserData['url']);
@@ -50,9 +56,9 @@ class CacheEngine
                     try {
                         $this->cacheStore->saveResponseData($response, $this->requestParserData);
                         if ($request->header('Referer') !== 'interceptor-worker') {
-                            $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);            
+                            $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                         }
-                    } catch (\Throwable $th) {}               
+                    } catch (\Throwable $th) {}
                 }
             } else {
                 $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);

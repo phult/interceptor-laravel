@@ -2,6 +2,8 @@
 namespace Megaads\Interceptor\Cache;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlMultiHandler;
 use Megaads\Interceptor\Cache\CacheStore;
 use Megaads\Interceptor\Utils\UserAgentUtil;
 
@@ -29,16 +31,26 @@ class CacheWorker
         return $retval;
     }
 
-    public function refreshCache($url)
+    public function refreshCache($url, $devices = [], $async = false)
     {
-        $devices = \Config::get('interceptor.devices', []);
+        if ($devices == null || count($devices) == 0) {
+            $devices = \Config::get('interceptor.devices', []);
+        }
         foreach ($devices as $device) {
             $userAgent = UserAgentUtil::getUserAgent($device);
-            $response = $this->request($url, [
-                'User-Agent' => $userAgent,
-                'Referer' => 'interceptor-worker',
-                'Accept' => 'text/html',
-            ]);
+            if ($async) {
+                $this->requestAsync($url, [
+                    'User-Agent: ' . $userAgent,
+                    'Referer: interceptor-worker',
+                    'Accept: text/html',
+                ]);
+            } else {
+                $this->request($url, [
+                    'User-Agent' => $userAgent,
+                    'Referer' => 'interceptor-worker',
+                    'Accept' => 'text/html',
+                ]);
+            }
         }
     }
 
@@ -70,5 +82,17 @@ class CacheWorker
             $retval = 500;
         }
         return $retval;
+    }
+    protected function requestAsync($url, $headers)
+    {
+        $channel = curl_init();
+        curl_setopt($channel, CURLOPT_URL, $url);
+        curl_setopt($channel, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($channel, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($channel, CURLOPT_NOSIGNAL, 1);
+        curl_setopt($channel, CURLOPT_TIMEOUT_MS, 50);
+        curl_setopt($channel, CURLOPT_RETURNTRANSFER, 1);
+        curl_exec($channel);
+        curl_close($channel);
     }
 }
