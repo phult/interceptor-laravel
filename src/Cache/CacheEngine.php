@@ -45,14 +45,25 @@ class CacheEngine
     }
 
     public function after($request, $response = null)
-    {
+    {        
         if (array_key_exists('enable', $this->requestParserData)
             && array_key_exists('cache-state', $this->requestParserData)
             && $this->requestParserData['enable']) {
             if ($this->requestParserData['cache-state'] !== 'HIT') {
                 //check status code
+                $availableStatusCode = true;
                 $cachedStatuses = \Config::get('interceptor.statuses', []);
-                if (in_array(http_response_code(), $cachedStatuses)) {
+                $phpStatusCode = http_response_code();
+                $availableStatusCode = in_array($phpStatusCode, $cachedStatuses);
+                if ($availableStatusCode && method_exists($response, 'getStatusCode')) {
+                    $laravel4StatusCode = $response->getStatusCode();
+                    $availableStatusCode = in_array($laravel4StatusCode, $cachedStatuses);
+                }
+                if ($availableStatusCode && method_exists($response, 'status')) {
+                    $laravel5StatusCode = $response->status();
+                    $availableStatusCode = in_array($laravel5StatusCode, $cachedStatuses);
+                }
+                if ($availableStatusCode) {
                     try {
                         $this->cacheStore->saveResponseData($response, $this->requestParserData);
                         if ($request->header('Referer') !== 'interceptor-worker') {
