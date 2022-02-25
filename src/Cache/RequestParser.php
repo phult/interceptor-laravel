@@ -5,7 +5,7 @@ use Megaads\Interceptor\Utils\UserAgentUtil;
 use \Megaads\Interceptor\Utils\URLUtil;
 use Illuminate\Support\Facades\Redis;
 class RequestParser
-{
+{    
     public function parse($request)
     {
         $retval = [
@@ -27,7 +27,8 @@ class RequestParser
 
         // type
         $retval['type'] = $request->header('Accept');
-        if (strpos(strtolower($retval['type']), 'text/html') === false) {
+        if (strpos(strtolower($retval['type']), 'text/html') === false
+            && strpos($retval['type'], '*/*') === false) {
             return $retval;
         }
         // device
