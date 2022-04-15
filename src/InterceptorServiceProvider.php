@@ -43,11 +43,16 @@ class InterceptorServiceProvider extends RoutingServiceProvider
     public function boot()
     {
         if (method_exists($this->app['router'], 'aliasMiddleware')) {
-            $this->app['router']->aliasMiddleware('interceptor', \Megaads\Interceptor\Middlewares\Caching::class);
+            // Laravel >5.4
+            $this->app->router->aliasMiddleware('interceptor', \Megaads\Interceptor\Middlewares\Caching::class);
+        } else if (method_exists($this->app['router'], 'middleware')) {
+            // Laravel 5.2.*
+            $this->app->router->middleware('interceptor', \Megaads\Interceptor\Middlewares\Caching::class);
         } else {
+            // Laravel 4.*
             include __DIR__ . '/Routes.php';
             parent::boot();
-        }        
+        }       
     }
 
 }
