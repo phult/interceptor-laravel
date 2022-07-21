@@ -44,7 +44,7 @@ class RequestParser
         $retval['route'] = URLUtil::getRoute($request, $strippedQueryParams);
         $passedCookies = \Config::get('interceptor.passes.cookies', []);
         foreach ($passedCookies as $passedCookie) {
-            if ($request->cookie($passedCookie) != null) {
+            if ($request->cookie($passedCookie) != null || isset($_COOKIE[$passedCookie])) {
                 return $retval;
             }
         }
