@@ -6,6 +6,7 @@ return [
     "refreshRate" => 1800,
     "maxAge" => 86400,
     "cacheConnection" => 'cache',
+    "compress" => true,
     "devices" => [
         "desktop",
         "mobile",

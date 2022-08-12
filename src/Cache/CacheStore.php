@@ -19,7 +19,7 @@ class CacheStore
         $time = time();
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
-        $this->redis->set($key, $response->getContent());
+        $this->redis->set($key, $this->compress($response->getContent()));
         $this->redis->zadd('interceptor-cache-time', $time, $key);
         // }
         return $time;
@@ -48,7 +48,7 @@ class CacheStore
         $key = $this->buildCacheKey($requestParserData);
         $retval = $this->redis->get($key);
         if ($retval != null) {
-            return $retval;
+            return  $this->decompress($retval);
         }
     }
 
@@ -172,5 +172,19 @@ class CacheStore
             $retval .= $requestParserData[CacheStore::CACHE_TAGS_SAMPLE[$i]] . '::';
         }
         return $retval;
+    }
+
+    private function compress($data) {
+        if (\Config::get('interceptor.compress', true)) {
+            return gzcompress($data, 9);
+        }
+        return $data;
+    }
+
+    private function decompress($data) {
+        if (\Config::get('interceptor.compress', true)) {
+            return gzuncompress($data);
+        }
+        return $data;
     }
 }
