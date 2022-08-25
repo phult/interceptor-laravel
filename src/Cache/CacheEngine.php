@@ -28,6 +28,8 @@ class CacheEngine
             && $request->header('Referer') !== 'interceptor-worker') {            
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
             if ($cacheData != null) {
+                /** CACHE HIT **/
+                $this->cacheStore->summary('cache-hit');
                 $response = new Response();
                 // async refresh cache if it's out-of-date
                 if ($this->cacheStore->isOutOfDateResponse($this->requestParserData) === true) {
@@ -40,6 +42,9 @@ class CacheEngine
                 $response->header('Interceptor-Refresh-Time', date('d M Y H:i:s', $cacheTime));
                 $response->header('Interceptor-URL', $this->requestParserData['url']);
                 return $response->setContent($cacheData);
+            } else {
+                /** CACHE MISS **/
+                $this->cacheStore->summary('cache-miss');
             }
         }
     }

@@ -150,6 +150,17 @@ class CacheStore
         return $retval;
     }
 
+    public function summary($type = 'hit')
+    {
+        if (\Config::get('interceptor.summary', false)) {
+            // get the current hour timestamp in seconds
+            $time = mktime(date("H") , 0, 0,  date("m"), date("d"), date("Y"));
+            // save to a sorted-set
+            return $this->redis->zincrby($this->appName . '.interceptor-summary.' . $type, 1, $time);        
+        }
+        return false;
+    }
+
     private function parseCacheKey($cacheKey)
     {
         $explodedCacheKey = explode('::', $cacheKey);

@@ -7,6 +7,7 @@ return [
     "maxAge" => 86400,
     "cacheConnection" => 'cache',
     "compress" => true,
+    "summary" => false,
     "devices" => [
         "desktop",
         "mobile",
