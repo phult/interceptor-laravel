@@ -11,17 +11,25 @@ return [
     "devices" => [
         "desktop",
         "mobile",
-        "tablet"
+        "tablet",
     ],
     "statuses" => [200, 203, 300, 301, 302, 304, 307, 410],
     "strippedQueryParams" => [
-        "adgroupid",
-        "campaignid",
-        "gclid"        
+        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "adgroupid", "campaignid", "gclid", "button_tr", "affiliate_id", "slider", "zarsrc", "fbclid", "email", "url", "popup", "ads", "custom_id", "gbraid", "wbraid",
     ],
-    "passes" => [
+    "bypasses" => [
         "cookies" => [
             "user_id",
+        ],
+        "ips" => [
+            /** Wildcard is supported **/
+            "127.0.0.1",
+            "127.0.0.*",
+        ],
+        "userAgents" => [
+            /** Regex is supported **/
+            "crawler",
+            "/(.*)botnet(.*)/", 
         ],
         "routes" => [
             "login",

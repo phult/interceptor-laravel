@@ -39,19 +39,50 @@ class RequestParser
         }
         // url: n/a
         $strippedQueryParams = \Config::get('interceptor.strippedQueryParams', []);
-        $retval['url'] = URLUtil::buildURL($request, $strippedQueryParams);
-        // passes: cookies, routes
+        $retval['url'] = URLUtil::buildURL($request, $strippedQueryParams);   
+        
+        /** BYPASS CACHING */     
+        // bypass cookies
         $retval['route'] = URLUtil::getRoute($request, $strippedQueryParams);
-        $passedCookies = \Config::get('interceptor.passes.cookies', []);
-        foreach ($passedCookies as $passedCookie) {
+        $bypassedCookies = [];
+        $bypassedCookies = array_merge($bypassedCookies, \Config::get('interceptor.passes.cookies', []));
+        $bypassedCookies = array_merge($bypassedCookies, \Config::get('interceptor.bypasses.cookies', []));
+        foreach ($bypassedCookies as $passedCookie) {
             if ($request->cookie($passedCookie) != null || isset($_COOKIE[$passedCookie])) {
                 return $retval;
             }
         }
-        $passedRoutes = \Config::get('interceptor.passes.routes', []);
-        if (in_array($retval['route'], $passedRoutes)) {
+        // bypass routes
+        $bypassedRoutes = [];
+        $bypassedRoutes = array_merge($bypassedRoutes, \Config::get('interceptor.passes.routes', []));
+        $bypassedRoutes = array_merge($bypassedRoutes, \Config::get('interceptor.bypasses.routes', []));
+        if (in_array($retval['route'], $bypassedRoutes)) {
             return $retval;
         }
+        // bypass IPs: 
+        $clientIP = UserAgentUtil::getClientIP();
+        $bypassedIps = [];
+        $bypassedIps = array_merge($bypassedIps, \Config::get('interceptor.passes.ips', []));
+        $bypassedIps = array_merge($bypassedIps, \Config::get('interceptor.bypasses.ips', []));
+        for ($i = 0; $i < count($bypassedIps); $i++) { 
+            $bypassedIpItem = $bypassedIps[$i];
+            if ($clientIP === $bypassedIpItem || fnmatch($bypassedIpItem, $clientIP)) {
+                return $retval;
+            }
+        }
+        // bypass user-agents
+        $userAgent = $request->header('User-Agent');
+        $bypassedUserAgents = [];
+        $bypassedUserAgents = array_merge($bypassedUserAgents, \Config::get('interceptor.passes.userAgents', []));
+        $bypassedUserAgents = array_merge($bypassedUserAgents, \Config::get('interceptor.bypasses.userAgents', []));
+        for ($i = 0; $i < count($bypassedUserAgents); $i++) { 
+            $bypassedUserAgentItem = $bypassedUserAgents[$i];
+            if ($userAgent === $bypassedUserAgentItem || preg_match($bypassedUserAgentItem, $userAgent)) {
+                return $retval;
+            }
+        }
+
+        // RETURN
         $retval['enable'] = true;
         return $retval;
     }

@@ -50,4 +50,22 @@ class UserAgentUtil
     {
         return preg_match("/rambler|abacho|acoi|accona|aspseek|altavista|estyle|scrubby|lycos|geona|ia_archiver|alexa|sogou|skype|facebook|twitter|pinterest|linkedin|naver|bing|google|yahoo|duckduckgo|yandex|baidu|teoma|xing|java\/1.7.0_45|bot|crawl|slurp|spider|mediapartners|\sask\s|\saol\s/i", isset($_SERVER["HTTP_USER_AGENT"]) ? $_SERVER["HTTP_USER_AGENT"] : "");
     }
+
+    public static function getClientIP()
+    {
+        $retVal = 'UNKNOWN';
+        if (key_exists("HTTP_CLIENT_IP", $_SERVER))
+            $retVal = $_SERVER['HTTP_CLIENT_IP'];
+        else if (key_exists("HTTP_X_FORWARDED_FOR", $_SERVER))
+            $retVal = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        else if (key_exists("HTTP_X_FORWARDED", $_SERVER))
+            $retVal = $_SERVER['HTTP_X_FORWARDED'];
+        else if (key_exists("HTTP_FORWARDED_FOR", $_SERVER))
+            $retVal = $_SERVER['HTTP_FORWARDED_FOR'];
+        else if (key_exists("HTTP_FORWARDED", $_SERVER))
+            $retVal = $_SERVER['HTTP_FORWARDED'];
+        else if (key_exists("REMOTE_ADDR", $_SERVER))
+            $retVal = $_SERVER['REMOTE_ADDR'];
+        return $retVal;
+    }
 }
