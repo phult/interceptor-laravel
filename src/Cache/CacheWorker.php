@@ -56,16 +56,7 @@ class CacheWorker
 
     public function clearGarbageCache($maxCacheSize = null)
     {
-        $retval = 0;
-        if ($maxCacheSize == null) {
-            $maxCacheSize = \Config::get('interceptor.maxCacheSize', 5000);
-        }
-        $garbageCache = $this->cacheStore->listLastActiveTimeURLs($maxCacheSize, -1);
-        $retval = count($garbageCache);
-        foreach ($garbageCache as $item) {
-            $this->cacheStore->remove($item['url'], $item['device']);
-        }
-        return $retval;
+        return $this->cacheStore->clearGarbageCache($maxCacheSize);
     }
 
     private function request($url, $headers)
@@ -90,7 +81,7 @@ class CacheWorker
         curl_setopt($channel, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($channel, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($channel, CURLOPT_NOSIGNAL, 1);
-        curl_setopt($channel, CURLOPT_TIMEOUT_MS, 50);
+        curl_setopt($channel, CURLOPT_TIMEOUT_MS, 300);
         curl_setopt($channel, CURLOPT_RETURNTRANSFER, 1);
         curl_exec($channel);
         curl_close($channel);

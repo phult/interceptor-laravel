@@ -15,13 +15,18 @@ class CacheStore
         $this->appName = \Config::get('interceptor.appName', 'interceptor');
     }
     public function saveResponseData(\Illuminate\Http\Response $response, $requestParserData)
-    {
+    {        
         $time = time();
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
         $this->redis->set($key, $this->compress($response->getContent()));
-        $this->redis->zadd('interceptor-cache-time', $time, $key);
+        $this->redis->zadd('interceptor-cache-time', $time, $key);        
         // }
+        //auto execute the garage collector
+        $cacheSize = \Config::get('interceptor.maxCacheSize', 5000);
+        $autoCollectGarbageCacheSize = \Config::get('interceptor.autoCollectGarbageCacheSize', $cacheSize + 1000);
+        $this->clearGarbageCache($cacheSize, $autoCollectGarbageCacheSize - $cacheSize);
+        // return cache time
         return $time;
     }
 
@@ -41,6 +46,11 @@ class CacheStore
             $retval[] = $this->parseCacheKey($cacheKey);
         }
         return $retval;
+    }
+
+    public function cacheLength()
+    {
+        return $this->redis->zcount('interceptor-last-active-time', '-inf', '+inf');
     }
 
     public function getResponseData($requestParserData)
@@ -145,6 +155,29 @@ class CacheStore
                 if ($delCount > 0) {
                     $retval = true;
                 }
+            }
+        }
+        return $retval;
+    }
+
+    /**
+     * Cache garbage collector
+     * @param $maxCacheSize Max number of cache items
+     * @param $extraCacheSize Extra number of cache items to execute the garbage collector
+     * @return Number of removed cache-items
+     */
+    public function clearGarbageCache($maxCacheSize = null, $extraCacheSize = 0)
+    {
+        $retval = 0;
+        if ($maxCacheSize == null) {
+            $maxCacheSize = \Config::get('interceptor.maxCacheSize', 5000);
+        }
+        $cacheLength = $this->cacheLength();
+        if ($cacheLength > $maxCacheSize + $extraCacheSize) {
+            $garbageCache = $this->listLastActiveTimeURLs($maxCacheSize, -1);
+            $retval = count($garbageCache);
+            foreach ($garbageCache as $item) {
+                $this->remove($item['url'], $item['device']);
             }
         }
         return $retval;
