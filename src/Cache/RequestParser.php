@@ -35,7 +35,11 @@ class RequestParser
         $devices = \Config::get('interceptor.devices', []);
         $retval['device'] = UserAgentUtil::detectDevice($request->header('User-Agent'));
         if (!in_array($retval['device'], $devices)) {
-            return $retval;
+            if (in_array('responsive', $devices)) {
+                $retval['device'] = 'responsive';
+            } else {
+                return $retval;
+            }
         }
         // url: n/a
         $strippedQueryParams = \Config::get('interceptor.strippedQueryParams', []);

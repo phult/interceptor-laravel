@@ -6,13 +6,14 @@ return [
     "autoCollectGarbageCacheSize" => 6000, // Cache size to excecute the garbage collector automatically
     "refreshRate" => 1800,
     "maxAge" => 86400,
-    "cacheConnection" => 'cache',
+    "cacheConnection" => 'default',
     "compress" => true, // Require to flush all cache-data after changing this configuration
     "summary" => false,
     "devices" => [
         "desktop",
         "mobile",
         "tablet",
+        "default" // For Responsive website or Rest of devices
     ],
     "statuses" => [200, 203, 300, 301, 302, 304, 307, 410],
     "strippedQueryParams" => [
@@ -23,14 +24,16 @@ return [
             "user_id",
         ],
         "ips" => [
-            /** Wildcard is supported **/
-            "127.0.0.1",
-            "127.0.0.*",
+            /* Wildcard is supported. For example:
+            "8.8.8.8",
+            "8.8.*",
+            */
         ],
         "userAgents" => [
-            /** Regex is supported **/
+            /* Regex is supported. For example:
             "crawler",
             "/(.*)botnet(.*)/", 
+            */
         ],
         "routes" => [
             "login",

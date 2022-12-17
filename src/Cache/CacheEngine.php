@@ -23,9 +23,14 @@ class CacheEngine
     {
         $this->requestParserData = $this->requestParser->parse($request);
         $this->requestParserData['cache-state'] = 'MISS';
-        if (array_key_exists('enable', $this->requestParserData)
-            && $this->requestParserData['enable']
-            && $request->header('Referer') !== 'interceptor-worker') {            
+        if (
+            // check if cache engine is enabled for request
+            array_key_exists('enable', $this->requestParserData) && $this->requestParserData['enable']
+            // check if not is a request from interceptor
+            && $request->header('Referer') !== 'interceptor-worker'
+            // check if not is a clear-cache request
+            && !array_key_exists('clear_cache', $request->query())
+        ) {
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
             if ($cacheData != null) {
                 /** CACHE HIT **/
@@ -33,14 +38,16 @@ class CacheEngine
                 $response = new Response();
                 // async refresh cache if it's out-of-date
                 if ($this->cacheStore->isOutOfDateResponse($this->requestParserData) === true) {
+                    /** CACHE HIT EXPIRED **/
+                    $this->cacheStore->summary('cache-hit-expired');
                     $this->cacheWorker->refreshCache($this->requestParserData['url'], [$this->requestParserData['device']], true);
                 }
                 $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                 $cacheTime = $this->cacheStore->getResponseCacheTime($this->requestParserData);
                 $this->requestParserData['cache-state'] = 'HIT';
                 $response->header('Served-From', 'interceptor');
+                $response->header('Interceptor-Meta-Data', json_encode($this->requestParserData));
                 $response->header('Interceptor-Refresh-Time', date('d M Y H:i:s', $cacheTime));
-                $response->header('Interceptor-URL', $this->requestParserData['url']);
                 return $response->setContent($cacheData);
             } else {
                 /** CACHE MISS **/

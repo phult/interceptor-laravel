@@ -10,7 +10,7 @@ class CacheStore
     protected $appName;
     public function __construct()
     {
-        $cacheConnection = \Config::get('interceptor.cacheConnection', '');
+        $cacheConnection = \Config::get('interceptor.cacheConnection', 'default');
         $this->redis = Redis::connection($cacheConnection);
         $this->appName = \Config::get('interceptor.appName', 'interceptor');
     }
@@ -20,7 +20,7 @@ class CacheStore
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
         $this->redis->set($key, $this->compress($response->getContent()));
-        $this->redis->zadd('interceptor-cache-time', $time, $key);        
+        $this->redis->zadd($this->buildCacheKey('interceptor-cache-time'), $time, $key);        
         // }
         //auto execute the garage collector
         $cacheSize = \Config::get('interceptor.maxCacheSize', 5000);
@@ -34,14 +34,14 @@ class CacheStore
     {
         $time = time();
         $key = $this->buildCacheKey($requestParserData);
-        $this->redis->zadd('interceptor-last-active-time', $time, $key);
+        $this->redis->zadd($this->buildCacheKey('interceptor-last-active-time'), $time, $key);
         return $time;
     }
 
     public function listLastActiveTimeURLs($startIdx = 0, $stopIdx = -1)
     {
         $retval = [];
-        $cacheKeys = $this->redis->zrevrange('interceptor-last-active-time', $startIdx, $stopIdx);
+        $cacheKeys = $this->redis->zrevrange($this->buildCacheKey('interceptor-last-active-time'), $startIdx, $stopIdx);
         foreach ($cacheKeys as $cacheKey) {
             $retval[] = $this->parseCacheKey($cacheKey);
         }
@@ -50,7 +50,7 @@ class CacheStore
 
     public function cacheLength()
     {
-        return $this->redis->zcount('interceptor-last-active-time', '-inf', '+inf');
+        return $this->redis->zcount($this->buildCacheKey('interceptor-last-active-time'), '-inf', '+inf');
     }
 
     public function getResponseData($requestParserData)
@@ -65,13 +65,13 @@ class CacheStore
     public function getResponseCacheTime($requestParserData)
     {
         $key = $this->buildCacheKey($requestParserData);
-        return $this->redis->zscore('interceptor-cache-time', $key);
+        return $this->redis->zscore($this->buildCacheKey('interceptor-cache-time'), $key);
     }
 
     public function getOutOfDateResponses($createTimeFrom = 0, $createTimeTo = -1, $limit = 10)
     {
         $retval = [];
-        $expriredCacheData = $this->redis->zrangebyscore('interceptor-cache-time',
+        $expriredCacheData = $this->redis->zrangebyscore($this->buildCacheKey('interceptor-cache-time'),
             $createTimeFrom,
             $createTimeTo, [
                 'limit' => [0, $limit],
@@ -85,14 +85,14 @@ class CacheStore
     public function popOutOfDateResponses($createTimeFrom = 0, $createTimeTo = -1, $limit = 1)
     {
         $retval = [];
-        $expriredCacheData = $this->redis->zrangebyscore('interceptor-cache-time',
+        $expriredCacheData = $this->redis->zrangebyscore($this->buildCacheKey('interceptor-cache-time'),
             $createTimeFrom,
             $createTimeTo, [
                 'limit' => [0, $limit],
             ]);
         foreach ($expriredCacheData as $item) {
             $retval[] = $this->parseCacheKey($item);
-            $this->redis->zrem('interceptor-cache-time', $item);
+            $this->redis->zrem($this->buildCacheKey('interceptor-cache-time'), $item);
         }
         return $retval;
     }
@@ -126,9 +126,9 @@ class CacheStore
             $this->redis->del($cacheKey);
         }
         // flush cache time keys
-        $this->redis->del('interceptor-cache-time');
+        $this->redis->del($this->buildCacheKey('interceptor-cache-time'));
         // flush last active time keys
-        $this->redis->del('interceptor-last-active-time');
+        $this->redis->del($this->buildCacheKey('interceptor-last-active-time'));
     }
 
     public function remove($url, $device = null)
@@ -142,16 +142,16 @@ class CacheStore
         }
         // remove cache time keys and last active time keys
         if ($device != null) {
-            $delCount = $this->redis->zrem('interceptor-cache-time', $this->appName . '::' . $device . '::' . $url);
-            $this->redis->zrem('interceptor-last-active-time', $this->appName . '::' . $device . '::' . $url);
+            $delCount = $this->redis->zrem($this->buildCacheKey('interceptor-cache-time'), $this->appName . '::' . $device . '::' . $url);
+            $this->redis->zrem($this->buildCacheKey('interceptor-last-active-time'), $this->appName . '::' . $device . '::' . $url);
             if ($delCount > 0) {
                 $retval = true;
             }
         } else {
             $devices = \Config::get('interceptor.devices', []);
             foreach ($devices as $device) {
-                $delCount = $this->redis->zrem('interceptor-cache-time', $this->appName . '::' . $device . '::' . $url);
-                $this->redis->zrem('interceptor-last-active-time', $this->appName . '::' . $device . '::' . $url);
+                $delCount = $this->redis->zrem($this->buildCacheKey('interceptor-cache-time'), $this->appName . '::' . $device . '::' . $url);
+                $this->redis->zrem($this->buildCacheKey('interceptor-last-active-time'), $this->appName . '::' . $device . '::' . $url);
                 if ($delCount > 0) {
                     $retval = true;
                 }
@@ -204,9 +204,13 @@ class CacheStore
         ];
     }
 
-    private function buildCacheKey($requestParserData)
+    private function buildCacheKey($inputData)
     {
-        return $this->buildCacheTags($requestParserData) . $requestParserData['url'];
+        if (is_array($inputData)) {
+            return $this->buildCacheTags($inputData) . $inputData['url'];
+        } else {
+            return $this->appName . '::' . $inputData;
+        }
     }
 
     private function buildCacheTags($requestParserData)
