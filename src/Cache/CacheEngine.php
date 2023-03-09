@@ -75,6 +75,7 @@ class CacheEngine
                     $laravel5StatusCode = $response->status();
                     $availableStatusCode = in_array($laravel5StatusCode, $cachedStatuses);
                 }
+                $this->cacheStore->remove($this->requestParserData['url'], $this->requestParserData['device']);
                 if ($availableStatusCode) {
                     try {
                         $this->cacheStore->saveResponseData($response, $this->requestParserData);
