@@ -108,6 +108,17 @@ class CacheStore
         return $retval;
     }
 
+    public function isReachedMaxAgeResponse($requestParserData)
+    {
+        $retval = false;
+        $maxAge = \Config::get('interceptor.maxAge', 86400);
+        $cacheTime = $this->getResponseCacheTime($requestParserData);
+        if ($cacheTime == null || $cacheTime < (time() - $maxAge)) {
+            $retval = true;
+        }
+        return $retval;
+    }
+
     public function checkResponseKeys($url)
     {
         return $this->redis->keys($this->appName . '*' . $url);

@@ -32,16 +32,17 @@ class CacheEngine
             && !array_key_exists('clear_cache', $request->query())
         ) {
             $cacheData = $this->cacheStore->getResponseData($this->requestParserData);
-            if ($cacheData != null) {
-                /** CACHE HIT **/
-                $this->cacheStore->summary('cache-hit');
+            // if the cache data is not existed or reach-max-age -> by-pass caching
+            if ($cacheData != null && !$this->cacheStore->isReachedMaxAgeResponse($this->requestParserData)) {
                 $response = new Response();
-                // async refresh cache if it's out-of-date
+                // if the cache data is out-of-date -> async-refresh cache data
                 if ($this->cacheStore->isOutOfDateResponse($this->requestParserData) === true) {
                     /** CACHE HIT EXPIRED **/
                     $this->cacheStore->summary('cache-hit-expired');
                     $this->cacheWorker->refreshCache($this->requestParserData['url'], [$this->requestParserData['device']], true);
                 }
+                /** CACHE HIT **/
+                $this->cacheStore->summary('cache-hit');
                 $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                 $cacheTime = $this->cacheStore->getResponseCacheTime($this->requestParserData);
                 $this->requestParserData['cache-state'] = 'HIT';
