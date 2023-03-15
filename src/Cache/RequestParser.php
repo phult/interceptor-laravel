@@ -81,12 +81,21 @@ class RequestParser
         $bypassedUserAgents = array_merge($bypassedUserAgents, \Config::get('interceptor.bypasses.userAgents', []));
         for ($i = 0; $i < count($bypassedUserAgents); $i++) { 
             $bypassedUserAgentItem = $bypassedUserAgents[$i];
-            if ($userAgent === $bypassedUserAgentItem || preg_match($bypassedUserAgentItem, $userAgent)) {
+            if ($userAgent != null 
+                && (strtolower($userAgent) === strtolower($bypassedUserAgentItem) || preg_match($bypassedUserAgentItem, $userAgent))) {
                 return $retval;
             }
         }
-
-        // RETURN
+        // bypass request headers:
+        $passedHeaders = \Config::get('interceptor.passes.headers', []);
+        foreach ($passedHeaders as $key => $value) {
+            if ($request->header($key) != null 
+                && strtolower($request->header($key)) === strtolower($value)) {
+                return $retval;
+            }
+        }
+        
+        // RETURN               
         $retval['enable'] = true;
         return $retval;
     }

@@ -35,6 +35,9 @@ return [
             "/(.*)botnet(.*)/", 
             */
         ],
+        "headers" => [
+            "cache-control" => "bypass"
+        ],
         "routes" => [
             "login",
             "signup",
