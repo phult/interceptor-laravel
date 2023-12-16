@@ -8,19 +8,29 @@ class CacheStore
     const CACHE_TAGS_SAMPLE = ['appName', 'device'];
     protected $redis;
     protected $appName;
+    protected $isRedisConnected = false;
     public function __construct()
     {
         $cacheConnection = \Config::get('interceptor.cacheConnection', 'default');
         $this->redis = Redis::connection($cacheConnection);
+        try {
+            $this->redis->ping();
+            $this->isRedisConnected = true;
+        } catch (\Throwable $th) {
+            $this->isRedisConnected = false;
+        }
         $this->appName = \Config::get('interceptor.appName', 'interceptor');
     }
     public function saveResponseData(\Illuminate\Http\Response $response, $requestParserData)
-    {        
+    {
         $time = time();
+        if (!$this->isRedisConnected) {
+            return $time;
+        }
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
         $this->redis->set($key, $this->compress($response->getContent()));
-        $this->redis->zadd($this->buildCacheKey('interceptor-cache-time'), $time, $key);        
+        $this->redis->zadd($this->buildCacheKey('interceptor-cache-time'), $time, $key);
         // }
         //auto execute the garage collector
         $cacheSize = \Config::get('interceptor.maxCacheSize', 5000);
@@ -33,6 +43,9 @@ class CacheStore
     public function saveLastActiveTimeURL($requestParserData)
     {
         $time = time();
+        if (!$this->isRedisConnected) {
+            return $time;
+        }
         $key = $this->buildCacheKey($requestParserData);
         $this->redis->zadd($this->buildCacheKey('interceptor-last-active-time'), $time, $key);
         return $time;
@@ -41,6 +54,9 @@ class CacheStore
     public function listLastActiveTimeURLs($startIdx = 0, $stopIdx = -1)
     {
         $retval = [];
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $cacheKeys = $this->redis->zrevrange($this->buildCacheKey('interceptor-last-active-time'), $startIdx, $stopIdx);
         foreach ($cacheKeys as $cacheKey) {
             $retval[] = $this->parseCacheKey($cacheKey);
@@ -55,22 +71,34 @@ class CacheStore
 
     public function getResponseData($requestParserData)
     {
+        $retval = null;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $key = $this->buildCacheKey($requestParserData);
         $retval = $this->redis->get($key);
         if ($retval != null) {
-            return  $this->decompress($retval);
+            return $this->decompress($retval);
         }
     }
 
     public function getResponseCacheTime($requestParserData)
     {
+        $retval = time();
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $key = $this->buildCacheKey($requestParserData);
-        return $this->redis->zscore($this->buildCacheKey('interceptor-cache-time'), $key);
+        $retval = $this->redis->zscore($this->buildCacheKey('interceptor-cache-time'), $key);
+        return $retval;
     }
 
     public function getOutOfDateResponses($createTimeFrom = 0, $createTimeTo = -1, $limit = 10)
     {
         $retval = [];
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $expriredCacheData = $this->redis->zrangebyscore($this->buildCacheKey('interceptor-cache-time'),
             $createTimeFrom,
             $createTimeTo, [
@@ -85,6 +113,9 @@ class CacheStore
     public function popOutOfDateResponses($createTimeFrom = 0, $createTimeTo = -1, $limit = 1)
     {
         $retval = [];
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $expriredCacheData = $this->redis->zrangebyscore($this->buildCacheKey('interceptor-cache-time'),
             $createTimeFrom,
             $createTimeTo, [
@@ -100,6 +131,9 @@ class CacheStore
     public function isOutOfDateResponse($requestParserData)
     {
         $retval = false;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $refreshRate = \Config::get('interceptor.refreshRate', 86400);
         $cacheTime = $this->getResponseCacheTime($requestParserData);
         if ($cacheTime == null || $cacheTime < (time() - $refreshRate)) {
@@ -111,6 +145,9 @@ class CacheStore
     public function isReachedMaxAgeResponse($requestParserData)
     {
         $retval = false;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         $maxAge = \Config::get('interceptor.maxAge', 86400);
         $cacheTime = $this->getResponseCacheTime($requestParserData);
         if ($cacheTime == null || $cacheTime < (time() - $maxAge)) {
@@ -121,16 +158,26 @@ class CacheStore
 
     public function checkResponseKeys($url)
     {
+        if (!$this->isRedisConnected) {
+            return [];
+        }
         return $this->redis->keys($this->appName . '*' . $url);
     }
 
     public function listResponseKeys($device = '')
     {
+        if (!$this->isRedisConnected) {
+            return [];
+        }
         return $this->redis->keys($this->appName . '::' . $device . '*');
     }
 
     public function flush()
     {
+        $retval = false;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         // flush response cache data
         $cacheKeys = $this->redis->keys($this->appName . '*');
         foreach ($cacheKeys as $cacheKey) {
@@ -140,11 +187,16 @@ class CacheStore
         $this->redis->del($this->buildCacheKey('interceptor-cache-time'));
         // flush last active time keys
         $this->redis->del($this->buildCacheKey('interceptor-last-active-time'));
+        $retval = true;
+        return $retval;
     }
 
     public function remove($url, $device = null)
     {
         $retval = false;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         // remove response cache data
         $keyPattern = $device != null ? ($this->appName . '::' . $device . '::' . $url) : ($this->appName . '*' . $url);
         $cacheKeys = $this->redis->keys($keyPattern);
@@ -180,6 +232,9 @@ class CacheStore
     public function clearGarbageCache($maxCacheSize = null, $extraCacheSize = 0)
     {
         $retval = 0;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         if ($maxCacheSize == null) {
             $maxCacheSize = \Config::get('interceptor.maxCacheSize', 5000);
         }
@@ -196,13 +251,17 @@ class CacheStore
 
     public function summary($type = 'hit')
     {
+        $retval = false;
+        if (!$this->isRedisConnected) {
+            return $retval;
+        }
         if (\Config::get('interceptor.summary', false)) {
             // get the current hour timestamp in seconds
-            $time = mktime(date("H") , 0, 0,  date("m"), date("d"), date("Y"));
+            $time = mktime(date("H"), 0, 0, date("m"), date("d"), date("Y"));
             // save to a sorted-set
-            return $this->redis->zincrby($this->appName . '.interceptor-summary.' . $type, 1, $time);        
+            $retval = $this->redis->zincrby($this->appName . '.interceptor-summary.' . $type, 1, $time);
         }
-        return false;
+        return $retval;
     }
 
     private function parseCacheKey($cacheKey)
@@ -233,14 +292,16 @@ class CacheStore
         return $retval;
     }
 
-    private function compress($data) {
+    private function compress($data)
+    {
         if (\Config::get('interceptor.compress', true)) {
             return gzcompress($data, 9);
         }
         return $data;
     }
 
-    private function decompress($data) {
+    private function decompress($data)
+    {
         if (\Config::get('interceptor.compress', true)) {
             return gzuncompress($data);
         }

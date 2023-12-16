@@ -48,7 +48,8 @@ class CacheEngine
                 $this->requestParserData['cache-state'] = 'HIT';
                 $response->header('Served-From', 'interceptor');
                 $response->header('Interceptor-Meta-Data', json_encode($this->requestParserData));
-                $response->header('Interceptor-Refresh-Time', date('d M Y H:i:s', $cacheTime));
+                $response->header('Interceptor-Cache-Time', date('d M Y H:i:s', $cacheTime));
+                $response->header('Interceptor-Cache-State', 'HIT');
                 return $response->setContent($cacheData);
             } else {
                 /** CACHE MISS **/
@@ -80,6 +81,8 @@ class CacheEngine
                 if ($availableStatusCode) {
                     try {
                         $this->cacheStore->saveResponseData($response, $this->requestParserData);
+                        $response->header('Served-From', 'interceptor');
+                        $response->header('Interceptor-Cache-State', 'MISS');
                         if ($request->header('Referer') !== 'interceptor-worker') {
                             $this->cacheStore->saveLastActiveTimeURL($this->requestParserData);
                         }
