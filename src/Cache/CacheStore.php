@@ -181,10 +181,7 @@ class CacheStore
             return $retval;
         }
         // flush response cache data
-        $cacheKeys = $this->redis->keys($this->appName . '*');
-        foreach ($cacheKeys as $cacheKey) {
-            $this->redis->del($cacheKey);
-        }
+        $this->removeAllContentCache();
         // flush cache time keys
         $this->redis->del($this->buildCacheKey('interceptor-cache-time'));
         // flush last active time keys
@@ -199,12 +196,9 @@ class CacheStore
         if (!$this->isRedisConnected) {
             return $retval;
         }
-        // remove response cache data
-        $keyPattern = $device != null ? ($this->appName . '::' . $device . '::' . $url) : ($this->appName . '*' . $url);
-        $cacheKeys = $this->redis->keys($keyPattern);
-        foreach ($cacheKeys as $cacheKey) {
-            $this->redis->del($cacheKey);
-        }
+        // remove response cache data        
+        $this->removeContentCache($url, $device);
+        
         // remove cache time keys and last active time keys
         if ($device != null) {
             $delCount = $this->redis->zrem($this->buildCacheKey('interceptor-cache-time'), $this->appName . '::' . $device . '::' . $url);
@@ -315,7 +309,7 @@ class CacheStore
         if ($this->saveToFile === false) {
             $this->redis->set($key, $content);
         } else {
-            $directory = storage_path('cache/interceptor');
+            $directory = storage_path('cache/interceptor/' . $this->appName);
             $filename = md5($key);
             if (!file_exists($directory)) {
                 mkdir($directory, 0777, true);
@@ -330,7 +324,7 @@ class CacheStore
         if ($this->saveToFile === false) {
             $retval = $this->redis->get($key);
         } else {
-            $directory = storage_path('cache/interceptor');
+            $directory = storage_path('cache/interceptor/' . $this->appName);
             $filename = md5($key);
             $filePath = $directory . '/' . $filename;
             if (file_exists($filePath)) {
@@ -338,6 +332,55 @@ class CacheStore
             }
         }      
         return $retval;  
+    }
+    function removeContentCache($url, $device = null)
+    {        
+        if ($this->saveToFile === false) {
+            $keyPattern = $device != null ? ($this->appName . '::' . $device . '::' . $url) : ($this->appName . '*' . $url);
+            $cacheKeys = $this->redis->keys($keyPattern);
+            foreach ($cacheKeys as $cacheKey) {
+                $this->redis->del($cacheKey);
+            }
+        } else {
+            if ($device != null) {
+                $key = $this->appName . '::' . $device . '::' . $url;
+                $directory = storage_path('cache/interceptor/' . $this->appName);
+                $filename = md5($key);
+                $filePath = $directory . '/' . $filename;
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            } else {
+                $devices = \Config::get('interceptor.devices', []);
+                foreach ($devices as $device) {
+                    $key = $this->appName . '::' . $device . '::' . $url;
+                    $directory = storage_path('cache/interceptor/' . $this->appName);
+                    $filename = md5($key);
+                    $filePath = $directory . '/' . $filename;
+                    if (file_exists($filePath)) {
+                        unlink($filePath);
+                    }
+                }
+            }
+        }
+    }
+    function removeAllContentCache() {
+        if ($this->saveToFile === false) {
+            $cacheKeys = $this->redis->keys($this->appName . '*');
+            foreach ($cacheKeys as $cacheKey) {
+                $this->redis->del($cacheKey);
+            }
+        } else {
+            $directory = storage_path('cache/interceptor/' . $this->appName);
+            if (file_exists($directory)) {
+                $files = glob($directory . '/*');
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+        }
     }
 
 }
