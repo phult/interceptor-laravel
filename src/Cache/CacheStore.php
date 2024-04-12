@@ -9,6 +9,7 @@ class CacheStore
     protected $redis;
     protected $appName;
     protected $isRedisConnected = false;
+    protected $saveToFile = false;
     public function __construct()
     {
         $cacheConnection = \Config::get('interceptor.cacheConnection', 'default');
@@ -20,6 +21,7 @@ class CacheStore
             $this->isRedisConnected = false;
         }
         $this->appName = \Config::get('interceptor.appName', 'interceptor');
+        $this->saveToFile = \Config::get('interceptor.saveToFile', false);
     }
     public function saveResponseData(\Illuminate\Http\Response $response, $requestParserData)
     {
@@ -29,7 +31,7 @@ class CacheStore
         }
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
-        $this->redis->set($key, $this->compress($response->getContent()));
+        $this->saveContentCache($key, $this->compress($response->getContent()));        
         $this->redis->zadd($this->buildCacheKey('interceptor-cache-time'), $time, $key);
         // }
         //auto execute the garage collector
@@ -76,7 +78,7 @@ class CacheStore
             return $retval;
         }
         $key = $this->buildCacheKey($requestParserData);
-        $retval = $this->redis->get($key);
+        $retval = $this->readContentCache($key);
         if ($retval != null) {
             return $this->decompress($retval);
         }
@@ -307,4 +309,35 @@ class CacheStore
         }
         return $data;
     }
+
+    function saveContentCache($key, $content)
+    {
+        if ($this->saveToFile === false) {
+            $this->redis->set($key, $content);
+        } else {
+            $directory = storage_path('cache/interceptor');
+            $filename = md5($key);
+            if (!file_exists($directory)) {
+                mkdir($directory, 0777, true);
+            }
+            $filePath = $directory . '/' . $filename;
+            file_put_contents($filePath, $content);
+        }        
+    }
+    function readContentCache($key)
+    {
+        $retval = null;
+        if ($this->saveToFile === false) {
+            $retval = $this->redis->get($key);
+        } else {
+            $directory = storage_path('cache/interceptor');
+            $filename = md5($key);
+            $filePath = $directory . '/' . $filename;
+            if (file_exists($filePath)) {
+                $retval = file_get_contents($filePath);
+            }
+        }      
+        return $retval;  
+    }
+
 }

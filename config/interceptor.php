@@ -7,6 +7,7 @@ return [
     "refreshRate" => 1800,
     "maxAge" => 86400,
     "cacheConnection" => 'default',
+    "saveToFile" => false,
     "compress" => true, // Require to flush all cache-data after changing this configuration
     "summary" => false,
     "devices" => [
