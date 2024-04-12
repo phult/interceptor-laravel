@@ -291,7 +291,7 @@ class CacheStore
     private function compress($data)
     {
         if (\Config::get('interceptor.compress', true)) {
-            return gzcompress($data, 9);
+            return gzcompress($data, \Config::get('interceptor.compressLevel', 9));
         }
         return $data;
     }

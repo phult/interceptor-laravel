@@ -9,6 +9,7 @@ return [
     "cacheConnection" => 'default',
     "saveToFile" => false,
     "compress" => true, // Require to flush all cache-data after changing this configuration
+    "compressLevel" => 9, // 0-9
     "summary" => false,
     "devices" => [
         "desktop",
