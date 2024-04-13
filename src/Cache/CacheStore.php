@@ -74,14 +74,17 @@ class CacheStore
     public function getResponseData($requestParserData)
     {
         $retval = null;
-        if (!$this->isRedisConnected) {
-            return $retval;
+        if ($this->isRedisConnected) {
+            $key = $this->buildCacheKey($requestParserData);
+            $content = $this->readContentCache($key);
+            if ($content != null && $content != '') {
+                $content = $this->decompress($content);
+                if ($content != null && $content != '') {
+                    $retval = $content;
+                }
+            }
         }
-        $key = $this->buildCacheKey($requestParserData);
-        $retval = $this->readContentCache($key);
-        if ($retval != null) {
-            return $this->decompress($retval);
-        }
+        return $retval;
     }
 
     public function getResponseCacheTime($requestParserData)
