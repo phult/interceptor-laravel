@@ -32,9 +32,9 @@ class UserAgentUtil
         $retval = 'desktop';
         $detect = new MobileDetect();
         try {
-            if ($detect->isTablet() || self::isTablet($userAgent)) {
+            if ($detect->isTablet() || $detect->isTablet($userAgent)) {
                 $retval = 'tablet';
-            } else if ($detect->isMobile() || self::isMobile($userAgent)) {
+            } else if ($detect->isMobile() || $detect->isMobile($userAgent)) {
                 $retval = 'mobile';
             }
         } catch (\Exception $e) {
@@ -46,21 +46,6 @@ class UserAgentUtil
         return $retval;
     }
     
-    public static function isMobile()
-    {
-        return preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", isset($_SERVER["HTTP_USER_AGENT"]) ? $_SERVER["HTTP_USER_AGENT"] : "");
-    }
-
-    public static function isTablet()
-    {
-        return preg_match("/(ipad|tablet)/i", isset($_SERVER["HTTP_USER_AGENT"]) ? $_SERVER["HTTP_USER_AGENT"] : "");
-    }
-
-    public static function isBot()
-    {
-        return preg_match("/rambler|abacho|acoi|accona|aspseek|altavista|estyle|scrubby|lycos|geona|ia_archiver|alexa|sogou|skype|facebook|twitter|pinterest|linkedin|naver|bing|google|yahoo|duckduckgo|yandex|baidu|teoma|xing|java\/1.7.0_45|bot|crawl|slurp|spider|mediapartners|\sask\s|\saol\s/i", isset($_SERVER["HTTP_USER_AGENT"]) ? $_SERVER["HTTP_USER_AGENT"] : "");
-    }
-
     public static function getClientIP()
     {
         $retVal = 'UNKNOWN';
