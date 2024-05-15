@@ -1,6 +1,8 @@
 <?php
 namespace Megaads\Interceptor\Utils;
 
+use Megaads\Interceptor\Utils\MobileDetect;
+
 class UserAgentUtil
 {
     public static function getUserAgent($device) {
@@ -28,10 +30,15 @@ class UserAgentUtil
     public static function detectDevice($userAgent)
     {
         $retval = 'desktop';
-        if (self::isTablet()) {
-            $retval = 'tablet';
-        } else if (self::isMobile()) {
-            $retval = 'mobile';
+        $detect = new MobileDetect();
+        try {
+            if ($detect->isTablet() || self::isTablet($userAgent)) {
+                $retval = 'tablet';
+            } else if ($detect->isMobile() || self::isMobile($userAgent)) {
+                $retval = 'mobile';
+            }
+        } catch (\Exception $e) {
+            $retval = 'na';
         }
         // if (self::isBot()) {
         //     $retval .= '_bot';
