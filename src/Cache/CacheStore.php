@@ -31,7 +31,7 @@ class CacheStore
         }
         $key = $this->buildCacheKey($requestParserData);
         // if (!\Cache::tags($tags)->has($key)) {
-        $this->saveContentCache($key, $this->compress($response->getContent()));        
+        $this->saveContentCache($key, $this->compress($response->getContent()));
         $this->redis->zadd($this->buildCacheKey('interceptor-cache-time'), $time, $key);
         // }
         //auto execute the garage collector
@@ -79,7 +79,7 @@ class CacheStore
             $content = $this->readContentCache($key);
             if ($content != null && $content != '') {
                 $content = $this->decompress($content);
-                if ($content != null && $content != '') {
+                if ($content != null && $content !== false && $content !== '') {
                     $retval = $content;
                 }
             }
@@ -199,9 +199,9 @@ class CacheStore
         if (!$this->isRedisConnected) {
             return $retval;
         }
-        // remove response cache data        
+        // remove response cache data
         $this->removeContentCache($url, $device);
-        
+
         // remove cache time keys and last active time keys
         if ($device != null) {
             $delCount = $this->redis->zrem($this->buildCacheKey('interceptor-cache-time'), $this->appName . '::' . $device . '::' . $url);
@@ -302,7 +302,11 @@ class CacheStore
     private function decompress($data)
     {
         if (\Config::get('interceptor.compress', true)) {
-            return gzuncompress($data);
+            try {
+                return gzuncompress($data);
+            } catch (\Throwable $th) {
+                return "";
+            }
         }
         return $data;
     }
@@ -319,7 +323,7 @@ class CacheStore
             }
             $filePath = $directory . '/' . $filename;
             file_put_contents($filePath, $content);
-        }        
+        }
     }
     function readContentCache($key)
     {
@@ -333,11 +337,11 @@ class CacheStore
             if (file_exists($filePath)) {
                 $retval = file_get_contents($filePath);
             }
-        }      
-        return $retval;  
+        }
+        return $retval;
     }
     function removeContentCache($url, $device = null)
-    {        
+    {
         if ($this->saveToFile === false) {
             $keyPattern = $device != null ? ($this->appName . '::' . $device . '::' . $url) : ($this->appName . '*' . $url);
             $cacheKeys = $this->redis->keys($keyPattern);
@@ -367,7 +371,8 @@ class CacheStore
             }
         }
     }
-    function removeAllContentCache() {
+    function removeAllContentCache()
+    {
         if ($this->saveToFile === false) {
             $cacheKeys = $this->redis->keys($this->appName . '*');
             foreach ($cacheKeys as $cacheKey) {
