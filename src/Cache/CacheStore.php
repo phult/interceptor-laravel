@@ -355,7 +355,7 @@ class CacheStore
                 $filename = md5($key);
                 $filePath = $directory . '/' . $filename;
                 if (file_exists($filePath)) {
-                    unlink($filePath);
+                    @unlink($filePath);
                 }
             } else {
                 $devices = \Config::get('interceptor.devices', []);
@@ -365,7 +365,7 @@ class CacheStore
                     $filename = md5($key);
                     $filePath = $directory . '/' . $filename;
                     if (file_exists($filePath)) {
-                        unlink($filePath);
+                        @unlink($filePath);
                     }
                 }
             }
@@ -384,7 +384,7 @@ class CacheStore
                 $files = glob($directory . '/*');
                 foreach ($files as $file) {
                     if (is_file($file)) {
-                        unlink($file);
+                        @unlink($file);
                     }
                 }
             }
