@@ -77,7 +77,7 @@ class CacheStore
         if ($this->isRedisConnected) {
             $key = $this->buildCacheKey($requestParserData);
             $content = $this->readContentCache($key);
-            if ($content != null && $content != '') {
+            if ($content != null && $content != '' && $content !== false) {
                 $content = $this->decompress($content);
                 if ($content != null && $content !== false && $content !== '') {
                     $retval = $content;
@@ -335,7 +335,7 @@ class CacheStore
             $filename = md5($key);
             $filePath = $directory . '/' . $filename;
             if (file_exists($filePath)) {
-                $retval = file_get_contents($filePath);
+                $retval = @file_get_contents($filePath);
             }
         }
         return $retval;
